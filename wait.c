@@ -4,35 +4,68 @@
 #include <time.h>
 #include <signal.h>
 
-#define CNT 20
+#define MAXFORKS 20
+
+int *ids;
+
+void handle(){
+  //printf ("ALARM\n");
+
+  
+  alarm(2);
+}
+
+void replace_pid(int pid){
+
+  int count = MAXFORKS;
+  int iter = 0;
+  //printf("%d ------\n\n",count);
+  while(iter < count){
+    //printf ("test %d with %d\n",pid, ids[iter]);
+    if(ids[iter] == pid){
+      int newpid;
+      newpid = fork();
+      if(newpid == 0){
+        //printf("my pid is %d \n",getpid());
+        execv("./worker.php",NULL);
+        return;
+      }
+      ids[iter] = newpid;
+      return;
+    }
+    ++iter;
+  }
+  printf ("PID %d NOT FOUND ----------------- \n",pid);
+}
 
 int main(void){
-  int cnt = CNT;
-  int *ids;
-  ids = malloc  (sizeof(int)*CNT);
+  int cnt = MAXFORKS;
+  ids = malloc  (sizeof(int)*MAXFORKS);
   while(--cnt>=0)
   {
-      int r = 310 + rand()%10;
+      int r = 10 + rand()%10;
     ids[cnt]=fork();
     if(ids[cnt] == 0)
     { 
-//    printf("is child\n");
-      sleep(r);
-      printf("I'm exit - %d\n",getpid());
-      //printf("rand=%d\n",r);
+      //printf("my pid is %d \n",getpid());
+      execv("./worker.php",NULL);
       return 0;
     }
    }
   int pc =0 ; //terminated processes
+
+  signal(SIGALRM,handle);
+  alarm(4);
   while(1){ 
     int pid;
     int status;
     pid = wait(&status);
     if(pid == -1){
-      printf("no childs here");
+      printf("no childs here, will exit\n");
       exit(0);
     }
     printf("process %d with id=%d and status=%d exited\n",++pc,pid,status);
+    replace_pid(pid);
   }
   return 0;
 }
